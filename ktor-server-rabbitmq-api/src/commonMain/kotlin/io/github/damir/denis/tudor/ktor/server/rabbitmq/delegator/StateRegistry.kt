@@ -1,103 +1,109 @@
 package io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator
 
 import io.ktor.util.logging.*
-import kotlin.native.concurrent.ThreadLocal
 import kotlin.reflect.KProperty
 
 /**
  * StateRegistry is a utility object to manage and trace the initialization
- * states of properties in an object. It uses thread-local storage to manage
- * state and references for thread safety and separation.
+ * states of properties in an object. It tracks states per object using a
+ * global registry map, so Delegator.setValue can be non-suspending.
  *
- * @version 1.1.4
+ * @version 1.4.0
  */
-@ThreadLocal
 object StateRegistry {
-    /**
-     * Thread-local storage for the reference to the current object
-     * and it's logger for the current thread's context.
-     */
-    private var ref: Any? = null
-    private var logger: Logger? = null
-
-    /* Default logger for fallback. */
-    private val defaultLogger = KtorSimpleLogger(this::class.qualifiedName!!)
 
     /**
-     * Map to store the states of properties, identified by
-     * the combination of object and property name.
+     * Global registry map to store ScopedStateRegistry instances per object.
      */
-    private var states = mutableMapOf<Pair<String, String>, State<Any>>()
+    private val registries = mutableMapOf<Any, ScopedStateRegistry>()
 
     /**
-     * Adds a state for a given property.
-     *
-     * @param propertyOf the class name of the object.
-     * @param propertyName the name of the property.
-     * @param state the state to assign to the property.
+     * ScopedStateRegistry holds a reference to an object and its logger,
+     * along with a map of property states for that object.
      */
-    fun addState(propertyOf: String, propertyName: String, state: State<Any>) {
-        states[propertyOf to propertyName] = state
+    private class ScopedStateRegistry(
+        val ref: Any,
+        val logger: Logger
+    ) {
+        val states = mutableMapOf<Pair<String, String>, State<Any>>()
     }
 
     /**
-     * Executes a block of code within the context of a specific object (`delegatorScope`),
-     * managing the reference and state map during execution.
+     * Retrieves or creates the registry for a given object.
      *
-     * @param on the reference to the current object.
-     * @param block the block of code to execute with the context of this object.
+     * @param on the object to get or create a registry for.
+     * @return the ScopedStateRegistry for the object.
      */
-    suspend fun <T : Any> delegatorScope(on: Any, block: suspend () -> T): T {
-        ref = on
-
-        logger = KtorSimpleLogger(on::class.qualifiedName!!)
-        logger!!.trace("DelegatorScope used for <${on::class.simpleName}>.")
-
-        return try {
-            block()
-        } finally {
-            logger = defaultLogger
-
-            states = states.filter {
-                it.key.first != ref!!::class.qualifiedName
-            }.toMutableMap()
-
-            ref = null
+    private fun getRegistry(on: Any): ScopedStateRegistry {
+        return registries.getOrPut(on) {
+            ScopedStateRegistry(
+                ref = on,
+                logger = KtorSimpleLogger(on::class.qualifiedName!!)
+            )
         }
     }
 
     /**
-     * Checks if all specified properties are initialized.
+     * Adds or updates the state of a property for a given object and property name.
      *
+     * @param on the object instance containing the property.
+     * @param propertyOf the object whose class name is used as the property owner.
+     * @param property the property to track.
+     * @param state the current state of the property.
+     */
+    fun addState(
+        on: Any,
+        propertyOf: Any,
+        property: KProperty<*>,
+        state: State<Any>
+    ) {
+        val registry = getRegistry(on)
+        val owner = propertyOf::class.qualifiedName!!
+        registry.states[owner to property.name] = state
+    }
+
+    /**
+     * Verifies that all specified properties have been initialized.
+     *
+     * @param on the object instance to check properties for.
      * @param properties the properties to check.
      * @return true if all properties are initialized, false otherwise.
      */
-    fun verify(vararg properties: KProperty<*>): Boolean {
-        ref?.let { currentRef ->
-            return properties.all {
-                states.getOrPut(currentRef::class.qualifiedName!! to it.name) {
-                    State.Uninitialized
-                } !is State.Uninitialized
-            }
-        } ?: error("No reference set for the current thread.")
+    fun verify(on: Any, vararg properties: KProperty<*>): Boolean {
+        val registry = getRegistry(on)
+        val owner = registry.ref::class.qualifiedName!!
+
+        return properties.all { property ->
+            registry.states.getOrPut(owner to property.name) { State.Uninitialized } !is State.Uninitialized
+        }
     }
 
     /**
-     * Provides a trace of the states of all properties in the given object.
-     * Returns a list of strings representing the state and value of each property.
+     * Logs the state trace for specified properties.
+     * Shows which properties are initialized and their values.
      *
-     * @return a list of strings representing the state and value of each property.
+     * @param on the object instance to log properties for.
+     * @param properties the properties to log; if empty, logs a message indicating no properties to trace.
      */
-    fun logStateTrace(vararg properties: KProperty<*> = emptyArray()) {
-        val currentRef = ref ?: throw IllegalStateException("No reference set for the current thread.")
-        val currentLogger = logger ?: defaultLogger
+    fun logStateTrace(on: Any, vararg properties: KProperty<*>): String {
+        val registry = getRegistry(on)
+        val owner = registry.ref::class.qualifiedName!!
 
-        currentLogger.trace("<${currentRef::class.simpleName}> State trace.")
+        registry.logger.trace("<${registry.ref::class.simpleName}> State trace")
 
-        properties.map {
-            val state = states[currentRef::class.qualifiedName to it.name]
-            val value = if ((state is State.Initialized)) state.value else "Uninitialized"
-            currentLogger.error("<${currentRef::class.simpleName}> <${it.name}>, value: <$value>")
+        for (property in properties) {
+            val state = registry.states[owner to property.name]
+            val value = (state as? State.Initialized)?.value ?: "Uninitialized"
+
+            registry.logger.error(
+                "<${registry.ref::class.simpleName}> <${property.name}> value=<$value>"
+            )
         }
+
+        if (properties.isEmpty()) {
+            registry.logger.error("<${registry.ref::class.simpleName}> No properties to trace")
+        }
+
+        return "Unexpected combination of parameters"
     }
 }
