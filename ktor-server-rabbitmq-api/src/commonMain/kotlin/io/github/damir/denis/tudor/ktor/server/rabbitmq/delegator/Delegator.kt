@@ -1,6 +1,5 @@
 package io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator
 
-import kotlinx.coroutines.runBlocking
 import kotlin.reflect.KProperty
 
 

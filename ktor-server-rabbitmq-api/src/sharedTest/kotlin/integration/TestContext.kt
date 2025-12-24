@@ -1,3 +1,5 @@
+package integration
+
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.ConnectionManagerKey
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.dsl.ChannelContext
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.dsl.ConnectionContext

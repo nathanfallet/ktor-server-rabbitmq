@@ -14,7 +14,7 @@ class BasicQosBuilder(private val channel: Channel) {
     var global: Boolean by Delegator(on = this)
 
     suspend fun build() = when {
-        verify(on = this@BasicQosBuilder, ::prefetchCount, ::prefetchCount, ::global) -> {
+        verify(on = this@BasicQosBuilder, ::prefetchSize, ::prefetchCount, ::global) -> {
             channel.basicQos(prefetchSize, prefetchCount, global)
         }
 

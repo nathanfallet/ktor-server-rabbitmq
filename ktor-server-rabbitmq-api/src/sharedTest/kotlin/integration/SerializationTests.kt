@@ -12,7 +12,6 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.testcontainers.containers.RabbitMQContainer
 import org.testcontainers.utility.DockerImageName
-import rabbitmqTest
 import java.lang.Thread.sleep
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.assertEquals
