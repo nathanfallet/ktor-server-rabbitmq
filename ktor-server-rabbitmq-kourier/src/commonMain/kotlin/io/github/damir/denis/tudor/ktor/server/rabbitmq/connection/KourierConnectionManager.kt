@@ -25,6 +25,7 @@ import kotlinx.io.files.FileNotFoundException
 open class KourierConnectionManager(
     private val scope: CoroutineScope,
     private val config: ConnectionConfig,
+    private val instanceIdentifier: String = "defaultInstance",
 ) : ConnectionManager() {
 
     private val amqpConfig: AMQPConfig = amqpConfig(config.uri)
@@ -37,6 +38,9 @@ open class KourierConnectionManager(
 
     override val configuration
         get() = config
+
+    override val instanceName: String
+        get() = instanceIdentifier
 
     init {
         if (config.tlsEnabled) enableTLS()

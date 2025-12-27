@@ -78,10 +78,5 @@ kotlin {
                 api(libs.kotlinx.serialization.json)
             }
         }
-        val commonTest by getting {
-            dependencies {
-                implementation(libs.tests.mockk)
-            }
-        }
     }
 }
