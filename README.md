@@ -4,7 +4,7 @@
 
 </div>
 
-![Deployment Status](https://github.com/DamirDenis-Tudor/ktor-server-rabbitmq/actions/workflows/deployment.yml/badge.svg) ![Pull Request Checks](https://github.com/DamirDenis-Tudor/ktor-server-rabbitmq/actions/workflows/pull-request-checks.yml/badge.svg)
+![Deployment Status](https://github.com/DamirDenis-Tudor/ktor-server-rabbitmq/actions/workflows/deployment.yml/badge.svg) ![Pull Request Checks](https://github.com/DamirDenis-Tudor/ktor-server-rabbitmq/actions/workflows/pull-request-checks.yml/badge.svg) [![codecov](https://codecov.io/github/DamirDenis-Tudor/ktor-server-rabbitmq/graph/badge.svg?token=GZ70OPXVH9)](https://codecov.io/github/DamirDenis-Tudor/ktor-server-rabbitmq)
 
 ### Overview
 
