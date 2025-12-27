@@ -322,11 +322,6 @@ class OperationsTests {
 
             rabbitmqTest {
                 throw Exception("something went wrong")
-                basicPublish {
-                    exchange = "demo2-exchange"
-                    routingKey = "demo2-routing-key"
-                    message { "Hello World!" }
-                }
             }
 
             rabbitmqTest {
