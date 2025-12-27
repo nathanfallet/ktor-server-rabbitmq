@@ -17,6 +17,15 @@ class InstallTests {
     }
 
     @Test
+    fun `test install multiple instances`() = testApplication {
+        application {
+            install(RabbitMQ)
+            install(RabbitMQ(instanceName = "instance1"))
+            install(RabbitMQ(instanceName = "instance2"))
+        }
+    }
+
+    @Test
     fun `test install rabbitmq with tls enabled but missing other required parameters`() = testApplication {
         application{
             assertFailsWith<IllegalArgumentException> {

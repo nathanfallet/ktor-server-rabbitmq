@@ -32,6 +32,7 @@ import javax.net.ssl.TrustManagerFactory
 open class JavaConnectionManager(
     private val scope: CoroutineScope,
     private val config: ConnectionConfig,
+    private val instanceIdentifier: String = "defaultInstance",
 ) : ConnectionManager() {
 
     private val connectionFactory = ConnectionFactory()
@@ -47,6 +48,9 @@ open class JavaConnectionManager(
 
     override val configuration
         get() = config
+
+    override val instanceName: String
+        get() = instanceIdentifier
 
     init {
         connectionFactory.apply {
@@ -70,7 +74,7 @@ open class JavaConnectionManager(
     private fun createExecutor(): ExecutorService {
         val threadIdCounter = AtomicInteger(-1)
         val threadFactory = ThreadFactory { runnable ->
-            val threadName = "rabbitMQ-${threadIdCounter.incrementAndGet()}"
+            val threadName = "${instanceName}-rabbitMQ-${threadIdCounter.incrementAndGet()}"
             logger.debug("Creating new thread with ID <$threadName>")
             Thread(runnable, threadName).apply { isDaemon = true }
         }
