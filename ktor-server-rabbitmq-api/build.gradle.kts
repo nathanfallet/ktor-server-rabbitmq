@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.multiplatform)
     alias(libs.plugins.serialization)
+    alias(libs.plugins.kover)
     alias(libs.plugins.maven)
 }
 
@@ -76,6 +77,11 @@ kotlin {
                 api(libs.ktor.server.core)
                 api(libs.kotlinx.coroutines)
                 api(libs.kotlinx.serialization.json)
+            }
+        }
+        val commonTest by getting {
+            dependencies {
+                implementation(libs.tests.mockk)
             }
         }
     }

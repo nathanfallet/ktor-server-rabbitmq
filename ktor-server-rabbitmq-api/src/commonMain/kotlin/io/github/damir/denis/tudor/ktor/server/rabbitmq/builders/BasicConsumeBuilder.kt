@@ -2,7 +2,6 @@ package io.github.damir.denis.tudor.ktor.server.rabbitmq.builders
 
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.connection.ConnectionManager
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator.Delegator
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator.StateRegistry.delegatorScope
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator.StateRegistry.logStateTrace
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator.StateRegistry.verify
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.dsl.RabbitDslMarker
@@ -23,19 +22,19 @@ class BasicConsumeBuilder(
     val connectionManager: ConnectionManager,
     private val channel: Channel,
 ) {
-    val defaultLogger = KtorSimpleLogger(this::class.qualifiedName!!)
+    val defaultLogger = KtorSimpleLogger(name = this::class.qualifiedName!!)
 
-    var noLocal: Boolean by Delegator()
-    var exclusive: Boolean by Delegator()
-    var arguments: Map<String, Any> by Delegator()
+    var noLocal: Boolean by Delegator(on = this)
+    var exclusive: Boolean by Delegator(on = this)
+    var arguments: Map<String, Any> by Delegator(on = this)
 
-    var autoAck: Boolean by Delegator()
-    var queue: String by Delegator()
-    var consumerTag: String by Delegator()
+    var autoAck: Boolean by Delegator(on = this)
+    var queue: String by Delegator(on = this)
+    var consumerTag: String by Delegator(on = this)
 
-    private var deliverCallback: DeliverCallback by Delegator()
-    private var cancelCallback: CancelCallback by Delegator()
-    private var shutdownSignalCallback: ConsumerShutdownSignalCallback by Delegator()
+    private var deliverCallback: DeliverCallback by Delegator(on = this)
+    private var cancelCallback: CancelCallback by Delegator(on = this)
+    private var shutdownSignalCallback: ConsumerShutdownSignalCallback by Delegator(on = this)
 
     var dispatcher: CoroutineDispatcher = Dispatchers.rabbitMQ
     var coroutinePollSize: Int = 1
@@ -62,35 +61,6 @@ class BasicConsumeBuilder(
         }
         cancelCallback = CancelCallback { }
         shutdownSignalCallback = ConsumerShutdownSignalCallback { _, error -> }
-    }
-
-    @RabbitDslMarker
-    @Deprecated(
-        message = "Use deliverCallback with Message<T> parameter for full access to properties and envelope.",
-        level = DeprecationLevel.WARNING
-    )
-    inline fun <reified T> deliverCallback(crossinline callback: suspend (tag: Long, message: T) -> Unit) {
-        repeat(coroutinePollSize) {
-            connectionManager.coroutineScope.launch(dispatcher) {
-                receiverChannel.consumeAsFlow().collect { (consumerTag, delivery) ->
-                    runCatching {
-                        when (T::class) {
-                            String::class -> delivery.body.decodeToString() as T
-                            ByteArray::class -> delivery.body as T
-
-                            else -> Json.decodeFromString<T>(delivery.body.decodeToString())
-                        }
-                    }.onFailure { error ->
-                        defaultLogger.error(error)
-                        if (failureCallbackDefined) {
-                            receiverFailChannel.trySendBlocking(consumerTag to delivery)
-                        }
-                    }.getOrNull()?.let { message ->
-                        callback(delivery.envelope.deliveryTag, message)
-                    }
-                }
-            }
-        }
     }
 
     @RabbitDslMarker
@@ -170,115 +140,142 @@ class BasicConsumeBuilder(
         }
     }
 
-    suspend fun build(): String = delegatorScope(on = this@BasicConsumeBuilder) {
-        return@delegatorScope when {
-            verify(
-                ::queue,
-                ::autoAck,
-                ::consumerTag,
-                ::noLocal,
-                ::exclusive,
-                ::arguments,
-                ::deliverCallback,
-                ::cancelCallback,
-                ::shutdownSignalCallback
-            ) -> {
-                channel.basicConsume(
-                    queue,
-                    autoAck,
-                    consumerTag,
-                    noLocal,
-                    exclusive,
-                    arguments,
-                    deliverCallback,
-                    cancelCallback,
-                    shutdownSignalCallback
-                )
-            }
+    suspend fun build(): String = when {
+        verify(
+            on = this@BasicConsumeBuilder,
+            ::queue,
+            ::autoAck,
+            ::consumerTag,
+            ::noLocal,
+            ::exclusive,
+            ::arguments,
+            ::deliverCallback,
+            ::cancelCallback,
+            ::shutdownSignalCallback
+        ) -> {
+            channel.basicConsume(
+                queue,
+                autoAck,
+                consumerTag,
+                noLocal,
+                exclusive,
+                arguments,
+                deliverCallback,
+                cancelCallback,
+                shutdownSignalCallback
+            )
+        }
 
-            verify(::queue, ::autoAck, ::arguments, ::deliverCallback, ::cancelCallback, ::shutdownSignalCallback) -> {
-                channel.basicConsume(
-                    queue,
-                    autoAck,
-                    arguments = arguments,
-                    deliverCallback = deliverCallback,
-                    cancelCallback = cancelCallback,
-                    shutdownSignalCallback = shutdownSignalCallback
-                )
-            }
+        verify(
+            on = this@BasicConsumeBuilder,
+            ::queue,
+            ::autoAck,
+            ::arguments,
+            ::deliverCallback,
+            ::cancelCallback,
+            ::shutdownSignalCallback
+        ) -> {
+            channel.basicConsume(
+                queue,
+                autoAck,
+                arguments = arguments,
+                deliverCallback = deliverCallback,
+                cancelCallback = cancelCallback,
+                shutdownSignalCallback = shutdownSignalCallback
+            )
+        }
 
-            verify(::queue, ::autoAck, ::consumerTag, ::deliverCallback, ::cancelCallback) -> {
-                channel.basicConsume(
-                    queue,
-                    autoAck,
-                    consumerTag,
-                    deliverCallback = deliverCallback,
-                    cancelCallback = cancelCallback
-                )
-            }
+        verify(
+            on = this@BasicConsumeBuilder,
+            ::queue,
+            ::autoAck,
+            ::consumerTag,
+            ::deliverCallback,
+            ::cancelCallback
+        ) -> {
+            channel.basicConsume(
+                queue,
+                autoAck,
+                consumerTag,
+                deliverCallback = deliverCallback,
+                cancelCallback = cancelCallback
+            )
+        }
 
 
-            verify(::queue, ::autoAck, ::consumerTag, ::deliverCallback, ::shutdownSignalCallback) -> {
-                channel.basicConsume(
-                    queue,
-                    autoAck,
-                    consumerTag,
-                    deliverCallback = deliverCallback,
-                    shutdownSignalCallback = shutdownSignalCallback
-                )
-            }
+        verify(
+            on = this@BasicConsumeBuilder,
+            ::queue,
+            ::autoAck,
+            ::consumerTag,
+            ::deliverCallback,
+            ::shutdownSignalCallback
+        ) -> {
+            channel.basicConsume(
+                queue,
+                autoAck,
+                consumerTag,
+                deliverCallback = deliverCallback,
+                shutdownSignalCallback = shutdownSignalCallback
+            )
+        }
 
-            verify(::queue, ::autoAck, ::arguments, ::deliverCallback, ::shutdownSignalCallback) -> {
-                channel.basicConsume(
-                    queue,
-                    autoAck,
-                    arguments = arguments,
-                    deliverCallback = deliverCallback,
-                    shutdownSignalCallback = shutdownSignalCallback
-                )
-            }
+        verify(
+            on = this@BasicConsumeBuilder,
+            ::queue,
+            ::autoAck,
+            ::arguments,
+            ::deliverCallback,
+            ::shutdownSignalCallback
+        ) -> {
+            channel.basicConsume(
+                queue,
+                autoAck,
+                arguments = arguments,
+                deliverCallback = deliverCallback,
+                shutdownSignalCallback = shutdownSignalCallback
+            )
+        }
 
-            verify(::queue, ::autoAck, ::arguments, ::deliverCallback, ::cancelCallback) -> {
-                channel.basicConsume(
-                    queue,
-                    autoAck,
-                    arguments = arguments,
-                    deliverCallback = deliverCallback,
-                    cancelCallback = cancelCallback
-                )
-            }
+        verify(on = this@BasicConsumeBuilder, ::queue, ::autoAck, ::arguments, ::deliverCallback, ::cancelCallback) -> {
+            channel.basicConsume(
+                queue,
+                autoAck,
+                arguments = arguments,
+                deliverCallback = deliverCallback,
+                cancelCallback = cancelCallback
+            )
+        }
 
-            verify(::queue, ::autoAck, ::deliverCallback, ::shutdownSignalCallback) -> {
-                channel.basicConsume(
-                    queue,
-                    autoAck,
-                    deliverCallback = deliverCallback,
-                    shutdownSignalCallback = shutdownSignalCallback
-                )
-            }
+        verify(on = this@BasicConsumeBuilder, ::queue, ::autoAck, ::deliverCallback, ::shutdownSignalCallback) -> {
+            channel.basicConsume(
+                queue,
+                autoAck,
+                deliverCallback = deliverCallback,
+                shutdownSignalCallback = shutdownSignalCallback
+            )
+        }
 
-            verify(::queue, ::autoAck, ::deliverCallback, ::cancelCallback) -> {
-                channel.basicConsume(
-                    queue,
-                    autoAck,
-                    deliverCallback = deliverCallback,
-                    cancelCallback = cancelCallback
-                )
-            }
+        verify(on = this@BasicConsumeBuilder, ::queue, ::autoAck, ::deliverCallback, ::cancelCallback) -> {
+            channel.basicConsume(
+                queue,
+                autoAck,
+                deliverCallback = deliverCallback,
+                cancelCallback = cancelCallback
+            )
+        }
 
-            verify(::queue, ::autoAck, ::deliverCallback, ::cancelCallback) -> {
-                channel.basicConsume(
-                    queue,
-                    autoAck,
-                    deliverCallback = deliverCallback,
-                    cancelCallback = cancelCallback
-                )
-            }
+        verify(on = this@BasicConsumeBuilder, ::queue, ::autoAck, ::deliverCallback, ::cancelCallback) -> {
+            channel.basicConsume(
+                queue,
+                autoAck,
+                deliverCallback = deliverCallback,
+                cancelCallback = cancelCallback
+            )
+        }
 
-            else -> {
-                logStateTrace()
-                error("Unexpected combination of parameters")
-            }
+        else -> {
+            error(logStateTrace(on = this@BasicConsumeBuilder))
         }
     }
 }

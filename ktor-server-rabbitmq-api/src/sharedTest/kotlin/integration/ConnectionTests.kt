@@ -1,7 +1,5 @@
 package integration
 
-import channelTest
-import connectionTest
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.RabbitMQ
 import io.ktor.server.application.*
 import io.ktor.server.testing.*
@@ -12,7 +10,6 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.testcontainers.containers.RabbitMQContainer
 import org.testcontainers.utility.DockerImageName
-import rabbitmqTest
 import kotlin.test.assertNotEquals
 
 class ConnectionTests {

@@ -83,14 +83,3 @@ kotlin {
         }
     }
 }
-
-/*
-tasks.jar {
-    exclude("logback.xml")
-}
-
-tasks.register<Jar>("javadocJar") {
-    archiveClassifier.set("javadoc")
-    from(tasks["javadoc"])
-}
-*/
