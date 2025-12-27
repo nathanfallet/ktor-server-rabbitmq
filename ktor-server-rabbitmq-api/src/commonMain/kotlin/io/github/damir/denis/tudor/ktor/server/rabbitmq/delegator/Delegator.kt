@@ -13,7 +13,7 @@ import kotlin.reflect.KProperty
  * @author Damir Denis-Tudor
  * @version 1.0.0
  */
-internal class Delegator<T : Any> {
+internal class Delegator<T : Any>(private val on: Any) {
 
     private var state: State<T> = State.Uninitialized
 
@@ -44,8 +44,9 @@ internal class Delegator<T : Any> {
     operator fun setValue(thisRef: Any, property: KProperty<*>, value: T) {
         state = State.Initialized(value)
         StateRegistry.addState(
-            propertyOf = thisRef::class.qualifiedName!!,
-            propertyName = property.name,
+            on = on,
+            propertyOf = thisRef,
+            property = property,
             state = state
         )
     }
