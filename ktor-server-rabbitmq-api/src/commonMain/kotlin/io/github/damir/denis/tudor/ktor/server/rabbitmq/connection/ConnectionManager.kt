@@ -13,9 +13,13 @@ abstract class ConnectionManager {
 
     protected val logger = KtorSimpleLogger(this::class.simpleName ?: "ConnectionManager")
 
+    private val defaultConnectionName = "defaultConnection"
+
     abstract val dispatcher: CoroutineDispatcher
     abstract val coroutineScope: CoroutineScope
     abstract val configuration: ConnectionConfig
+
+    abstract val instanceName: String
 
     protected val channelCache = ConcurrentMap<String, Channel>()
     protected val connectionCache = ConcurrentMap<String, Connection>()
@@ -39,7 +43,7 @@ abstract class ConnectionManager {
      * @return The associated ID or the default connection name if not found.
      */
     fun getConnectionId(connection: Connection): String =
-        connectionCache.entries.find { it.value == connection }?.key ?: configuration.defaultConnectionName
+        connectionCache.entries.find { it.value == connection }?.key ?: defaultConnectionName
 
     /**
      * Retrieves or creates a RabbitMQ connection by its ID.
@@ -49,7 +53,7 @@ abstract class ConnectionManager {
      * @param id the ID of the connection to retrieve. Defaults to the default connection name.
      * @return the RabbitMQ connection.
      */
-    abstract suspend fun getConnection(id: String = configuration.defaultConnectionName): Connection
+    abstract suspend fun getConnection(id: String = defaultConnectionName): Connection
 
     /**
      * Closes and removes a RabbitMQ connection by its ID.
@@ -84,7 +88,7 @@ abstract class ConnectionManager {
      */
     suspend fun getChannel(
         channelId: Int = 1,
-        connectionId: String = configuration.defaultConnectionName,
+        connectionId: String = defaultConnectionName,
     ): Channel = channelMutex.withLock {
         retry {
             val id = getChannelKey(connectionId, channelId)
@@ -114,7 +118,7 @@ abstract class ConnectionManager {
      */
     suspend fun closeChannel(
         channelId: Int = 1,
-        connectionId: String = configuration.defaultConnectionName,
+        connectionId: String = defaultConnectionName,
     ) = channelMutex.withLock {
         val id = getChannelKey(connectionId, channelId)
 

@@ -8,24 +8,34 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 
-val ConnectionManagerKey = AttributeKey<ConnectionManager>("ConnectionManager")
+val ConnectionManagersKey = AttributeKey<MutableMap<String, ConnectionManager>>(
+    name = "RABBITMQ_CONNECTION_MANAGERS"
+)
 
 fun createRabbitMQPlugin(
+    instanceName: String = "default",
     createConnectionManager: (application: Application, pluginConfig: ConnectionConfig) -> ConnectionManager,
 ) = createApplicationPlugin(
-    name = "RabbitMQ",
+    name = "RabbitMQ-$instanceName",
     configurationPath = "ktor.rabbitmq",
     createConfiguration = ::ConnectionConfig
 ) {
     pluginConfig.verify()
 
-    with(createConnectionManager(application, pluginConfig)) {
-        RabbitMQDispatcherHolder.dispatcher = dispatcher
-
-        application.attributes.put(ConnectionManagerKey, this)
-        application.monitor.subscribe(ApplicationStopping) {
-            runBlocking { close() }
+    val managers: MutableMap<String, ConnectionManager> =
+        application.attributes.getOrNull(ConnectionManagersKey) ?: run {
+            val newMap = mutableMapOf<String, ConnectionManager>()
+            application.attributes.put(ConnectionManagersKey, newMap)
+            newMap
         }
+
+    val manager: ConnectionManager = createConnectionManager(application, pluginConfig)
+    RabbitMQDispatcherHolder.dispatcher = manager.dispatcher
+
+    managers[instanceName] = manager
+
+    application.monitor.subscribe(ApplicationStopping) {
+        runBlocking { manager.close() }
     }
 }
 

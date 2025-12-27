@@ -1,10 +1,8 @@
 package io.github.damir.denis.tudor.ktor.server.rabbitmq.dsl
 
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.ConnectionManagerKey
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.rabbitMQ
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.ConnectionManagersKey
 import io.ktor.server.application.*
 import io.ktor.server.routing.*
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /**
@@ -20,12 +18,14 @@ import kotlinx.coroutines.launch
  * @since 1.2.3
  */
 @RabbitDslMarker
-fun Application.rabbitmq(block: suspend PluginContext.() -> Unit) =
-    with(attributes[ConnectionManagerKey]) {
-        coroutineScope.launch(Dispatchers.rabbitMQ) {
-            PluginContext(this@with).apply { this.block() }
-        }
+fun Application.rabbitmq(instanceName: String = "default", block: suspend PluginContext.() -> Unit) {
+    val manager = attributes[ConnectionManagersKey][instanceName]
+        ?: error("RabbitMQ instance '$instanceName' is not installed")
+
+    manager.coroutineScope.launch(manager.dispatcher) {
+        PluginContext(manager).apply { block() }
     }
+}
 
 /**
  * Configures RabbitMQ within the `Routing` scope.
@@ -40,12 +40,14 @@ fun Application.rabbitmq(block: suspend PluginContext.() -> Unit) =
  * @since 1.2.3
  */
 @RabbitDslMarker
-fun Routing.rabbitmq(block: suspend PluginContext.() -> Unit) =
-    with(application.attributes[ConnectionManagerKey]) {
-        coroutineScope.launch(Dispatchers.rabbitMQ) {
-            PluginContext(this@with).apply { this.block() }
-        }
+fun Routing.rabbitmq(instanceName: String = "default", block: suspend PluginContext.() -> Unit) {
+    val manager = application.attributes[ConnectionManagersKey][instanceName]
+        ?: error("RabbitMQ instance '$instanceName' is not installed")
+
+    manager.coroutineScope.launch(manager.dispatcher) {
+        PluginContext(manager).apply { block() }
     }
+}
 
 /**
  * Configures RabbitMQ within the `Route` scope.
@@ -59,10 +61,11 @@ fun Routing.rabbitmq(block: suspend PluginContext.() -> Unit) =
  * @author Damir Denis-Tudor
  * @since 1.2.3
  */
-@RabbitDslMarker
-fun Route.rabbitmq(block: suspend PluginContext.() -> Unit) =
-    with(application.attributes[ConnectionManagerKey]) {
-        coroutineScope.launch(Dispatchers.rabbitMQ) {
-            PluginContext(this@with).apply { this.block() }
-        }
+fun Route.rabbitmq(instanceName: String = "default", block: suspend PluginContext.() -> Unit) {
+    val manager = application.attributes[ConnectionManagersKey][instanceName]
+        ?: error("RabbitMQ instance '$instanceName' is not installed")
+
+    manager.coroutineScope.launch(manager.dispatcher) {
+        PluginContext(manager).apply { block() }
     }
+}

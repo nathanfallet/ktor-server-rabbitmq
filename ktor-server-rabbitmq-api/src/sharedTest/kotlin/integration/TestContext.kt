@@ -1,6 +1,6 @@
 package integration
 
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.ConnectionManagerKey
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.ConnectionManagersKey
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.dsl.ChannelContext
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.dsl.ConnectionContext
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.dsl.PluginContext
@@ -13,12 +13,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
-fun Application.rabbitmqTest(block: suspend PluginContext.() -> Unit) = runBlocking {
-    with(attributes[ConnectionManagerKey]) {
-        coroutineScope.launch(Dispatchers.rabbitMQ) {
-            PluginContext(this@with).apply { this.block() }
-        }.join()
-    }
+fun Application.rabbitmqTest(instanceName: String = "default", block: suspend PluginContext.() -> Unit) = runBlocking {
+    val manager = attributes[ConnectionManagersKey][instanceName]
+        ?: error("RabbitMQ instance '$instanceName' is not installed")
+
+    manager.coroutineScope.launch(manager.dispatcher) {
+        PluginContext(manager).apply { block() }
+    }.join()
 }
 
 fun PluginContext.channelTest(block: suspend PluginContext.() -> Unit) = runBlocking {
