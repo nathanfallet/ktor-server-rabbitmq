@@ -340,12 +340,12 @@ class OperationsTests {
 
             sleep(2_000)
 
-            assertTrue(counter.get() == 2)
+            assertTrue(counter.get() == 1)
         }
     }
 
     @Test
-    fun `non serialization related exception `() = testApplication {
+    fun `when no failure callback is defined no exception is thrown`() = testApplication {
         val exceptionDeferred = CompletableDeferred<Throwable>()
 
         val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
@@ -407,7 +407,7 @@ class OperationsTests {
 
             println(thrown)
 
-            assertTrue(thrown is Exception)
+            assertTrue(thrown !is Exception)
         }
     }
 

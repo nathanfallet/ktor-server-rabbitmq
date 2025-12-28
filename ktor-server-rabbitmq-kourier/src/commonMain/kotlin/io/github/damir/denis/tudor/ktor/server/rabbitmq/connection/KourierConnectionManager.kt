@@ -89,6 +89,9 @@ open class KourierConnectionManager(
                             logger.warn("Attempt ${index + 1} failed: $it.")
                             delay(config.attemptDelay * 1000L)
                         }
+                        it is IllegalStateException -> {
+                            logger.warn("Attempt ${index + 1} failed: $it.")
+                        }
 
                         else -> throw it
                     }

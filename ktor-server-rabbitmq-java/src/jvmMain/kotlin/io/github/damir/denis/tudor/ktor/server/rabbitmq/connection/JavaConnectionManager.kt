@@ -126,6 +126,9 @@ open class JavaConnectionManager(
                             logger.warn("Attempt ${index + 1} failed: $it.")
                             sleep(config.attemptDelay * 1000L)
                         }
+                        it is IllegalStateException -> {
+                            logger.warn("Attempt ${index + 1} failed: $it.")
+                        }
 
                         else -> throw it
                     }

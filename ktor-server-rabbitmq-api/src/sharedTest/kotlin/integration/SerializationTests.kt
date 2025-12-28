@@ -242,7 +242,6 @@ class SerializationTests {
                     queue = "demo1-queue"
                     dispatcher = Dispatchers.IO
                     deliverCallback<Message> { message ->
-                        delay(3)
                         counter1.incrementAndGet()
                         log.info("Consume1 : $message")
                     }
@@ -258,7 +257,7 @@ class SerializationTests {
             assertTrue(
                 runBlocking {
                     withTimeoutOrNull(2000) { exceptionDeferred.await() }
-                } is Exception
+                } !is Exception
             )
         }
     }

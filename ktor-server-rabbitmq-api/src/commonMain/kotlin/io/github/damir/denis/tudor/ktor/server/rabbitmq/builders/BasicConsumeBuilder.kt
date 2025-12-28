@@ -102,8 +102,6 @@ class BasicConsumeBuilder(
                         defaultLogger.error("Exception in deliverCallback", error)
                         if (failureCallbackDefined) {
                             receiverFailChannel.trySendBlocking(consumerTag to delivery)
-                        } else {
-                            launch { throw error }
                         }
                     }
                 }
