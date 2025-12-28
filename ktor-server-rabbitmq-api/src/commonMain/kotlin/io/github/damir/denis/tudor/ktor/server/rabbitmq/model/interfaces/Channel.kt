@@ -1,4 +1,13 @@
-package io.github.damir.denis.tudor.ktor.server.rabbitmq.model
+package io.github.damir.denis.tudor.ktor.server.rabbitmq.model.interfaces
+
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.ExchangeDeclareOk
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.ExchangeDeleteOk
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.GetResponse
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.Properties
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.QueueBindOk
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.QueueDeclareOk
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.QueueDeleteOk
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.QueueUnbindOk
 
 interface Channel {
 

@@ -1,8 +1,8 @@
 package unit
 
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.builders.BasicPublishBuilder
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.Channel
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.Properties
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.interfaces.Channel
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.Properties
 import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest

@@ -3,8 +3,8 @@ package io.github.damir.denis.tudor.ktor.server.rabbitmq.builders
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator.Delegator
 
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.dsl.RabbitDslMarker
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.Channel
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.QueueBindOk
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.interfaces.Channel
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.QueueBindOk
 
 @RabbitDslMarker
 class QueueBindBuilder(private val channel: Channel) {

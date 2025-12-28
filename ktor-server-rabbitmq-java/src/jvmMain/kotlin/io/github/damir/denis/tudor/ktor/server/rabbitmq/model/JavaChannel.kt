@@ -1,5 +1,17 @@
 package io.github.damir.denis.tudor.ktor.server.rabbitmq.model
 
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.ExchangeDeclareOk
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.ExchangeDeleteOk
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.GetResponse
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.Properties
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.QueueDeclareOk
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.QueueDeleteOk
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.QueueUnbindOk
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.interfaces.CancelCallback
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.interfaces.Channel
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.interfaces.ConsumerShutdownSignalCallback
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.interfaces.DeliverCallback
+
 class JavaChannel(
     val channel: com.rabbitmq.client.Channel,
 ) : Channel {

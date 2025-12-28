@@ -3,7 +3,7 @@ package io.github.damir.denis.tudor.ktor.server.rabbitmq.builders
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator.Delegator
 
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.dsl.RabbitDslMarker
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.Channel
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.interfaces.Channel
 
 @RabbitDslMarker
 class ConsumerCountBuilder(private val channel: Channel) {

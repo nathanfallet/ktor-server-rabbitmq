@@ -2,7 +2,7 @@ package io.github.damir.denis.tudor.ktor.server.rabbitmq.dsl
 
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.builders.*
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.connection.ConnectionManager
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.Channel
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.interfaces.Channel
 
 /**
  * Represents a context for a RabbitMQ channel, providing a scope for performing

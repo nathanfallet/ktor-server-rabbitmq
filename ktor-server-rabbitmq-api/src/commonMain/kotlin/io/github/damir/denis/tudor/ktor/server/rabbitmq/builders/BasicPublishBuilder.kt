@@ -3,8 +3,8 @@ package io.github.damir.denis.tudor.ktor.server.rabbitmq.builders
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator.Delegator
 
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.dsl.RabbitDslMarker
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.Channel
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.Properties
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.interfaces.Channel
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.Properties
 import io.ktor.utils.io.charsets.*
 import io.ktor.utils.io.core.*
 import kotlinx.serialization.json.Json

@@ -1,6 +1,16 @@
 package io.github.damir.denis.tudor.ktor.server.rabbitmq.model
 
 import dev.kourier.amqp.*
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.Delivery
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.Envelope
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.ExchangeDeclareOk
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.ExchangeDeleteOk
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.GetResponse
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.QueueBindOk
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.QueueDeclareOk
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.QueueDeleteOk
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.QueueUnbindOk
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.exceptions.ShutdownSignalException
 
 fun Envelope(original: AMQPMessage) = Envelope(
     deliveryTag = original.deliveryTag.toLong(),
@@ -9,24 +19,25 @@ fun Envelope(original: AMQPMessage) = Envelope(
     routingKey = original.routingKey,
 )
 
-fun Properties(original: dev.kourier.amqp.Properties) = Properties(
-    contentType = original.contentType,
-    contentEncoding = original.contentEncoding,
-    headers = original.headers?.toMap(),
-    deliveryMode = original.deliveryMode?.toInt(),
-    priority = original.priority?.toInt(),
-    correlationId = original.correlationId,
-    replyTo = original.replyTo,
-    expiration = original.expiration,
-    messageId = original.messageId,
-    timestamp = original.timestamp,
-    type = original.type,
-    userId = original.userId,
-    appId = original.appId,
-    //clusterId = original.clusterId, // Not supported in Kourier
-)
+fun Properties(original: dev.kourier.amqp.Properties) =
+    io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.Properties(
+        contentType = original.contentType,
+        contentEncoding = original.contentEncoding,
+        headers = original.headers?.toMap(),
+        deliveryMode = original.deliveryMode?.toInt(),
+        priority = original.priority?.toInt(),
+        correlationId = original.correlationId,
+        replyTo = original.replyTo,
+        expiration = original.expiration,
+        messageId = original.messageId,
+        timestamp = original.timestamp,
+        type = original.type,
+        userId = original.userId,
+        appId = original.appId,
+        //clusterId = original.clusterId, // Not supported in Kourier
+    )
 
-fun Properties.toKourierProperties(): dev.kourier.amqp.Properties = properties {
+fun io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.Properties.toKourierProperties(): dev.kourier.amqp.Properties = properties {
     this@properties.contentType = this@toKourierProperties.contentType
     this@properties.contentEncoding = this@toKourierProperties.contentEncoding
     this@properties.headers = this@toKourierProperties.headers?.toTable()

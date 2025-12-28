@@ -1,6 +1,17 @@
 package io.github.damir.denis.tudor.ktor.server.rabbitmq.model
 
 import com.rabbitmq.client.AMQP
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.Delivery
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.Envelope
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.ExchangeDeclareOk
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.ExchangeDeleteOk
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.GetResponse
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.Properties
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.QueueBindOk
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.QueueDeclareOk
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.QueueDeleteOk
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.QueueUnbindOk
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.exceptions.ShutdownSignalException
 
 fun Envelope(original: com.rabbitmq.client.Envelope) = Envelope(
     deliveryTag = original.deliveryTag,

@@ -1,7 +1,7 @@
 package io.github.damir.denis.tudor.ktor.server.rabbitmq.connection
 
 import com.rabbitmq.client.ConnectionFactory
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.Connection
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.interfaces.Connection
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.JavaConnection
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asCoroutineDispatcher

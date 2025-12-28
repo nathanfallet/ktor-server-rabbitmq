@@ -1,7 +1,7 @@
 package unit
 
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.builders.ExchangeDeclareBuilder
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.*
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.interfaces.Channel
 import io.mockk.mockk
 import io.mockk.coVerify
 import kotlinx.coroutines.test.runTest

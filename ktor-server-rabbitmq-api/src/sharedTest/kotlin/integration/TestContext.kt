@@ -5,8 +5,8 @@ import io.github.damir.denis.tudor.ktor.server.rabbitmq.dsl.ChannelContext
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.dsl.ConnectionContext
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.dsl.PluginContext
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.dsl.RabbitDslMarker
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.Channel
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.Connection
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.interfaces.Channel
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.interfaces.Connection
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.rabbitMQ
 import io.ktor.server.application.*
 import kotlinx.coroutines.Dispatchers

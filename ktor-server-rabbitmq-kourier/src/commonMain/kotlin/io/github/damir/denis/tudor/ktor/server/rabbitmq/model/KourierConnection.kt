@@ -2,6 +2,8 @@ package io.github.damir.denis.tudor.ktor.server.rabbitmq.model
 
 import dev.kourier.amqp.connection.AMQPConnection
 import dev.kourier.amqp.connection.ConnectionState
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.interfaces.Channel
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.interfaces.Connection
 
 class KourierConnection(
     val connection: AMQPConnection,

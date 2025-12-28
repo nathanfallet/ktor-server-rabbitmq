@@ -4,7 +4,7 @@ import dev.kourier.amqp.AMQPException
 import dev.kourier.amqp.connection.AMQPConfig
 import dev.kourier.amqp.connection.amqpConfig
 import dev.kourier.amqp.robust.createRobustAMQPConnection
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.Connection
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.interfaces.Connection
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.KourierConnection
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.withLock

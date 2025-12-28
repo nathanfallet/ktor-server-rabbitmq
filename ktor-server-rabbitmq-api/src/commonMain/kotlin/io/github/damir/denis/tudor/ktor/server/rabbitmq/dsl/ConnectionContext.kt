@@ -1,8 +1,8 @@
 package io.github.damir.denis.tudor.ktor.server.rabbitmq.dsl
 
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.connection.ConnectionManager
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.Channel
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.Connection
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.interfaces.Channel
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.interfaces.Connection
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.rabbitMQ
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

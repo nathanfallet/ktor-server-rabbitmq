@@ -1,4 +1,4 @@
-package io.github.damir.denis.tudor.ktor.server.rabbitmq.model
+package io.github.damir.denis.tudor.ktor.server.rabbitmq.model.interfaces
 
 interface Connection {
 

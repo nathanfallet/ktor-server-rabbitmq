@@ -4,6 +4,13 @@ import io.github.damir.denis.tudor.ktor.server.rabbitmq.connection.ConnectionMan
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator.Delegator
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.dsl.RabbitDslMarker
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.*
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.Delivery
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.dto.Message
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.exceptions.ShutdownSignalException
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.interfaces.CancelCallback
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.interfaces.Channel
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.interfaces.ConsumerShutdownSignalCallback
+import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.interfaces.DeliverCallback
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.rabbitMQ
 import io.ktor.util.logging.*
 import io.ktor.utils.io.*
