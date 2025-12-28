@@ -2,22 +2,25 @@ package io.github.damir.denis.tudor.ktor.server.rabbitmq.builders
 
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator.Delegator
 
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator.StateRegistry.logStateTrace
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator.StateRegistry.verify
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.dsl.RabbitDslMarker
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.Channel
 
 @RabbitDslMarker
 class MessageCountBuilder(private val channel: Channel) {
-    var queue: String by Delegator(on = this)
+    private val queueDelegate = Delegator<String>()
+    var queue: String by queueDelegate
 
     suspend fun build(): Long = when {
-        verify(on = this@MessageCountBuilder, ::queue) -> {
+        Delegator.verify(
+            queueDelegate
+        ) -> {
             channel.messageCount(queue)
         }
 
         else -> {
-            error(logStateTrace(on = this@MessageCountBuilder))
+            error(
+                Delegator.logStateTrace(queueDelegate)
+            )
         }
     }
 }

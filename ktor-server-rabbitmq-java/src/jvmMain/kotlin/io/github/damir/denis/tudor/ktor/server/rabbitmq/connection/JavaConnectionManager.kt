@@ -74,7 +74,7 @@ open class JavaConnectionManager(
     private fun createExecutor(): ExecutorService {
         val threadIdCounter = AtomicInteger(-1)
         val threadFactory = ThreadFactory { runnable ->
-            val threadName = "${instanceName}-rabbitMQ-${threadIdCounter.incrementAndGet()}"
+            val threadName = "rabbitMQ-${threadIdCounter.incrementAndGet()}"
             logger.debug("Creating new thread with ID <$threadName>")
             Thread(runnable, threadName).apply { isDaemon = true }
         }
@@ -137,15 +137,15 @@ open class JavaConnectionManager(
 
     override suspend fun getConnection(id: String): Connection = connectionMutex.withLock {
         retry {
-            if (connectionCache.containsKey(id)) logger.debug("Connection with id: <$id> taken from cache.")
+            if (connectionCache.containsKey(id)) logger.debug("Connection with id: <$id> taken from cache, instance <$instanceName>.")
 
             val connection = connectionCache.getOrPut(id) {
-                logger.debug("Creating new connection with id: <$id>.")
+                logger.debug("Creating new connection with id: <$id>, instance <$instanceName>")
                 connectionFactory.newConnection(id)?.let(::JavaConnection)
-                    ?: error("Connection with id <$id> was not created.")
+                    ?: error("Connection with id <$id> was not created, instance <$instanceName>.")
             }
 
-            if (!connection.isOpen) error("Connection <$id> is not open.")
+            if (!connection.isOpen) error("Connection <$id> is not open, instance <$instanceName>.")
 
             return@retry connection
         }

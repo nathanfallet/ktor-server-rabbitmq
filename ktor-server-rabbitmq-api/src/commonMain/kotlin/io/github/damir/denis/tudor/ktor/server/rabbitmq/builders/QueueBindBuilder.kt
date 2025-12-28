@@ -2,34 +2,50 @@ package io.github.damir.denis.tudor.ktor.server.rabbitmq.builders
 
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator.Delegator
 
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator.StateRegistry.logStateTrace
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator.StateRegistry.verify
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.dsl.RabbitDslMarker
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.Channel
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.QueueBindOk
 
 @RabbitDslMarker
 class QueueBindBuilder(private val channel: Channel) {
-    var queue: String by Delegator(on = this)
-    var exchange: String by Delegator(on = this)
-    var routingKey: String by Delegator(on = this)
-    var arguments: Map<String, Any> by Delegator(on = this)
+    private val queueDelegate = Delegator<String>()
+    var queue: String by queueDelegate
+
+    private val exchangeDelegate = Delegator<String>()
+    var exchange: String by exchangeDelegate
+
+    private val routingKeyDelegate = Delegator<String>()
+    var routingKey: String by routingKeyDelegate
+
+    private val argumentsDelegate = Delegator<Map<String, Any>>()
+    var arguments: Map<String, Any> by argumentsDelegate
 
     init {
         routingKey = ""
     }
 
     suspend fun build(): QueueBindOk = when {
-        verify(on = this@QueueBindBuilder, ::queue, ::exchange, ::routingKey, ::arguments) -> {
+        Delegator.verify(
+            queueDelegate,
+            exchangeDelegate,
+            routingKeyDelegate,
+            argumentsDelegate
+        ) -> {
             channel.queueBind(queue, exchange, routingKey, arguments)
         }
 
-        verify(on = this@QueueBindBuilder, ::queue, ::exchange, ::routingKey) -> {
+        Delegator.verify(
+            queueDelegate,
+            exchangeDelegate,
+            routingKeyDelegate
+        ) -> {
             channel.queueBind(queue, exchange, routingKey)
         }
 
         else -> {
-            error(logStateTrace(on = this@QueueBindBuilder))
+            error(
+                Delegator.logStateTrace(queueDelegate, exchangeDelegate, routingKeyDelegate)
+            )
         }
     }
 }

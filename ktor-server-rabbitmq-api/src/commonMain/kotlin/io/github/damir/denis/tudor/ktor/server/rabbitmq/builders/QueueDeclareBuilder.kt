@@ -2,19 +2,26 @@ package io.github.damir.denis.tudor.ktor.server.rabbitmq.builders
 
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator.Delegator
 
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator.StateRegistry.logStateTrace
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator.StateRegistry.verify
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.dsl.RabbitDslMarker
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.Channel
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.QueueDeclareOk
 
 @RabbitDslMarker
 class QueueDeclareBuilder(private val channel: Channel) {
-    var queue: String by Delegator(on = this)
-    var durable: Boolean by Delegator(on = this)
-    var exclusive: Boolean by Delegator(on = this)
-    var autoDelete: Boolean by Delegator(on = this)
-    var arguments: Map<String, Any> by Delegator(on = this)
+    private val queueDelegate = Delegator<String>()
+    var queue: String by queueDelegate
+
+    private val durableDelegate = Delegator<Boolean>()
+    var durable: Boolean by durableDelegate
+
+    private val exclusiveDelegate = Delegator<Boolean>()
+    var exclusive: Boolean by exclusiveDelegate
+
+    private val autoDeleteDelegate = Delegator<Boolean>()
+    var autoDelete: Boolean by autoDeleteDelegate
+
+    private val argumentsDelegate = Delegator<Map<String, Any>>()
+    var arguments: Map<String, Any> by argumentsDelegate
 
     init {
         durable = true
@@ -24,12 +31,20 @@ class QueueDeclareBuilder(private val channel: Channel) {
     }
 
     suspend fun build(): QueueDeclareOk = when {
-        verify(on = this@QueueDeclareBuilder, ::queue, ::durable, ::exclusive, ::autoDelete, ::arguments) -> {
+        Delegator.verify(
+            queueDelegate,
+            durableDelegate,
+            exclusiveDelegate,
+            autoDeleteDelegate,
+            argumentsDelegate
+        ) -> {
             channel.queueDeclare(queue, durable, exclusive, autoDelete, arguments)
         }
 
         else -> {
-            error(logStateTrace(on = this@QueueDeclareBuilder))
+            error(
+                Delegator.logStateTrace(queueDelegate)
+            )
         }
     }
 }

@@ -2,8 +2,6 @@ package io.github.damir.denis.tudor.ktor.server.rabbitmq.builders
 
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.connection.ConnectionManager
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator.Delegator
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator.StateRegistry.logStateTrace
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator.StateRegistry.verify
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.dsl.RabbitDslMarker
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.*
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.rabbitMQ
@@ -24,17 +22,32 @@ class BasicConsumeBuilder(
 ) {
     val defaultLogger = KtorSimpleLogger(name = this::class.qualifiedName!!)
 
-    var noLocal: Boolean by Delegator(on = this)
-    var exclusive: Boolean by Delegator(on = this)
-    var arguments: Map<String, Any> by Delegator(on = this)
+    private val noLocalDelegate = Delegator<Boolean>()
+    var noLocal: Boolean by noLocalDelegate
 
-    var autoAck: Boolean by Delegator(on = this)
-    var queue: String by Delegator(on = this)
-    var consumerTag: String by Delegator(on = this)
+    private val exclusiveDelegate = Delegator<Boolean>()
+    var exclusive: Boolean by exclusiveDelegate
 
-    private var deliverCallback: DeliverCallback by Delegator(on = this)
-    private var cancelCallback: CancelCallback by Delegator(on = this)
-    private var shutdownSignalCallback: ConsumerShutdownSignalCallback by Delegator(on = this)
+    private val argumentsDelegate = Delegator<Map<String, Any>>()
+    var arguments: Map<String, Any> by argumentsDelegate
+
+    private val autoAckDelegate = Delegator<Boolean>()
+    var autoAck: Boolean by autoAckDelegate
+
+    private val queueDelegate = Delegator<String>()
+    var queue: String by queueDelegate
+
+    private val consumerTagDelegate = Delegator<String>()
+    var consumerTag: String by consumerTagDelegate
+
+    private val deliverCallbackDelegate = Delegator<DeliverCallback>()
+    private var deliverCallback: DeliverCallback by deliverCallbackDelegate
+
+    private val cancelCallbackDelegate = Delegator<CancelCallback>()
+    private var cancelCallback: CancelCallback by cancelCallbackDelegate
+
+    private val shutdownSignalCallbackDelegate = Delegator<ConsumerShutdownSignalCallback>()
+    private var shutdownSignalCallback: ConsumerShutdownSignalCallback by shutdownSignalCallbackDelegate
 
     var dispatcher: CoroutineDispatcher = Dispatchers.rabbitMQ
     var coroutinePollSize: Int = 1
@@ -54,6 +67,7 @@ class BasicConsumeBuilder(
 
     init {
         noLocal = false
+        autoAck = false
         exclusive = false
         arguments = emptyMap()
         deliverCallback = DeliverCallback { consumerTag, delivery ->
@@ -69,42 +83,30 @@ class BasicConsumeBuilder(
             connectionManager.coroutineScope.launch(dispatcher) {
                 receiverChannel.consumeAsFlow().collect { (consumerTag, delivery) ->
                     runCatching {
-                        when (T::class) {
+                        val body = when (T::class) {
                             String::class -> delivery.body.decodeToString() as T
                             ByteArray::class -> delivery.body as T
 
                             else -> Json.decodeFromString<T>(delivery.body.decodeToString())
                         }
-                    }.onFailure { error ->
-                        defaultLogger.error(error)
-                        if (failureCallbackDefined) {
-                            receiverFailChannel.trySendBlocking(consumerTag to delivery)
-                        }
-                    }.getOrNull()?.let { message ->
+
                         callback(
                             Message(
-                                body = message,
+                                body = body,
                                 consumerTag = consumerTag,
                                 envelope = delivery.envelope,
                                 properties = delivery.properties
                             )
                         )
+                    }.onFailure { error ->
+                        defaultLogger.error("Exception in deliverCallback", error)
+                        if (failureCallbackDefined) {
+                            receiverFailChannel.trySendBlocking(consumerTag to delivery)
+                        } else {
+                            launch { throw error }
+                        }
                     }
                 }
-            }
-        }
-    }
-
-    @RabbitDslMarker
-    @Deprecated(
-        message = "Use deliverFailureCallback with Message<ByteArray> parameter for full access to properties and envelope.",
-        level = DeprecationLevel.WARNING
-    )
-    fun deliverFailureCallback(callback: suspend (tag: Long, message: ByteArray) -> Unit) {
-        failureCallbackDefined = true
-        connectionManager.coroutineScope.launch(dispatcher) {
-            receiverFailChannel.consumeAsFlow().collect { (_, delivery) ->
-                callback(delivery.envelope.deliveryTag, delivery.body)
             }
         }
     }
@@ -141,17 +143,16 @@ class BasicConsumeBuilder(
     }
 
     suspend fun build(): String = when {
-        verify(
-            on = this@BasicConsumeBuilder,
-            ::queue,
-            ::autoAck,
-            ::consumerTag,
-            ::noLocal,
-            ::exclusive,
-            ::arguments,
-            ::deliverCallback,
-            ::cancelCallback,
-            ::shutdownSignalCallback
+        Delegator.verify(
+            queueDelegate,
+            autoAckDelegate,
+            consumerTagDelegate,
+            noLocalDelegate,
+            exclusiveDelegate,
+            argumentsDelegate,
+            deliverCallbackDelegate,
+            cancelCallbackDelegate,
+            shutdownSignalCallbackDelegate
         ) -> {
             channel.basicConsume(
                 queue,
@@ -166,14 +167,13 @@ class BasicConsumeBuilder(
             )
         }
 
-        verify(
-            on = this@BasicConsumeBuilder,
-            ::queue,
-            ::autoAck,
-            ::arguments,
-            ::deliverCallback,
-            ::cancelCallback,
-            ::shutdownSignalCallback
+        Delegator.verify(
+            queueDelegate,
+            autoAckDelegate,
+            argumentsDelegate,
+            deliverCallbackDelegate,
+            cancelCallbackDelegate,
+            shutdownSignalCallbackDelegate
         ) -> {
             channel.basicConsume(
                 queue,
@@ -185,13 +185,12 @@ class BasicConsumeBuilder(
             )
         }
 
-        verify(
-            on = this@BasicConsumeBuilder,
-            ::queue,
-            ::autoAck,
-            ::consumerTag,
-            ::deliverCallback,
-            ::cancelCallback
+        Delegator.verify(
+            queueDelegate,
+            autoAckDelegate,
+            consumerTagDelegate,
+            deliverCallbackDelegate,
+            cancelCallbackDelegate
         ) -> {
             channel.basicConsume(
                 queue,
@@ -202,14 +201,12 @@ class BasicConsumeBuilder(
             )
         }
 
-
-        verify(
-            on = this@BasicConsumeBuilder,
-            ::queue,
-            ::autoAck,
-            ::consumerTag,
-            ::deliverCallback,
-            ::shutdownSignalCallback
+        Delegator.verify(
+            queueDelegate,
+            autoAckDelegate,
+            consumerTagDelegate,
+            deliverCallbackDelegate,
+            shutdownSignalCallbackDelegate
         ) -> {
             channel.basicConsume(
                 queue,
@@ -220,13 +217,12 @@ class BasicConsumeBuilder(
             )
         }
 
-        verify(
-            on = this@BasicConsumeBuilder,
-            ::queue,
-            ::autoAck,
-            ::arguments,
-            ::deliverCallback,
-            ::shutdownSignalCallback
+        Delegator.verify(
+            queueDelegate,
+            autoAckDelegate,
+            argumentsDelegate,
+            deliverCallbackDelegate,
+            shutdownSignalCallbackDelegate
         ) -> {
             channel.basicConsume(
                 queue,
@@ -237,7 +233,13 @@ class BasicConsumeBuilder(
             )
         }
 
-        verify(on = this@BasicConsumeBuilder, ::queue, ::autoAck, ::arguments, ::deliverCallback, ::cancelCallback) -> {
+        Delegator.verify(
+            queueDelegate,
+            autoAckDelegate,
+            argumentsDelegate,
+            deliverCallbackDelegate,
+            cancelCallbackDelegate
+        ) -> {
             channel.basicConsume(
                 queue,
                 autoAck,
@@ -247,7 +249,12 @@ class BasicConsumeBuilder(
             )
         }
 
-        verify(on = this@BasicConsumeBuilder, ::queue, ::autoAck, ::deliverCallback, ::shutdownSignalCallback) -> {
+        Delegator.verify(
+            queueDelegate,
+            autoAckDelegate,
+            deliverCallbackDelegate,
+            shutdownSignalCallbackDelegate
+        ) -> {
             channel.basicConsume(
                 queue,
                 autoAck,
@@ -256,16 +263,12 @@ class BasicConsumeBuilder(
             )
         }
 
-        verify(on = this@BasicConsumeBuilder, ::queue, ::autoAck, ::deliverCallback, ::cancelCallback) -> {
-            channel.basicConsume(
-                queue,
-                autoAck,
-                deliverCallback = deliverCallback,
-                cancelCallback = cancelCallback
-            )
-        }
-
-        verify(on = this@BasicConsumeBuilder, ::queue, ::autoAck, ::deliverCallback, ::cancelCallback) -> {
+        Delegator.verify(
+            queueDelegate,
+            autoAckDelegate,
+            deliverCallbackDelegate,
+            cancelCallbackDelegate
+        ) -> {
             channel.basicConsume(
                 queue,
                 autoAck,
@@ -275,7 +278,13 @@ class BasicConsumeBuilder(
         }
 
         else -> {
-            error(logStateTrace(on = this@BasicConsumeBuilder))
+            error(
+                Delegator.logStateTrace(
+                    queueDelegate,
+                    autoAckDelegate,
+                    deliverCallbackDelegate
+                )
+            )
         }
     }
 }

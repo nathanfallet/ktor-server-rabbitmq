@@ -2,37 +2,51 @@ package io.github.damir.denis.tudor.ktor.server.rabbitmq.builders
 
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator.Delegator
 
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator.StateRegistry.logStateTrace
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator.StateRegistry.verify
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.dsl.RabbitDslMarker
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.Channel
 
 @RabbitDslMarker
 class BasicQosBuilder(private val channel: Channel) {
-    var prefetchSize: Int by Delegator(on = this)
-    var prefetchCount: Int by Delegator(on = this)
-    var global: Boolean by Delegator(on = this)
+    private val prefetchSizeDelegate = Delegator<Int>()
+    var prefetchSize: Int by prefetchSizeDelegate
+
+    private val prefetchCountDelegate = Delegator<Int>()
+    var prefetchCount: Int by prefetchCountDelegate
+
+    private val globalDelegate = Delegator<Boolean>()
+    var global: Boolean by globalDelegate
 
     suspend fun build() = when {
-        verify(on = this@BasicQosBuilder, ::prefetchSize, ::prefetchCount, ::global) -> {
+        Delegator.verify(
+            prefetchSizeDelegate,
+            prefetchCountDelegate,
+            globalDelegate
+        ) -> {
             channel.basicQos(prefetchSize, prefetchCount, global)
         }
 
-        verify(on = this@BasicQosBuilder, ::prefetchCount, ::global) -> {
+        Delegator.verify(
+            prefetchCountDelegate,
+            globalDelegate
+        ) -> {
             channel.basicQos(
                 prefetchCount = prefetchCount,
                 global = global
             )
         }
 
-        verify(on = this@BasicQosBuilder, ::prefetchCount) -> {
+        Delegator.verify(
+            prefetchCountDelegate
+        ) -> {
             channel.basicQos(
                 prefetchCount = prefetchCount
             )
         }
 
         else -> {
-            error(   logStateTrace(on = this@BasicQosBuilder))
+            error(
+                Delegator.logStateTrace(prefetchCountDelegate, globalDelegate)
+            )
         }
     }
 }

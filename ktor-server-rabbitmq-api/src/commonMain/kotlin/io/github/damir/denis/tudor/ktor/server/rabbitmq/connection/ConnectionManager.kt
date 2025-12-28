@@ -93,17 +93,17 @@ abstract class ConnectionManager {
         retry {
             val id = getChannelKey(connectionId, channelId)
 
-            if (channelCache.containsKey(id)) logger.debug("Channel with id: <$id> will be taken from cache.")
+            if (channelCache.containsKey(id)) logger.debug("Channel with id: <$id> instance <$instanceName> will be taken from cache.")
 
             val channel = channelCache.getOrPut(id) {
-                logger.debug("Creating new channel with id <$channelId> for connection with id <$connectionId>.")
+                logger.debug("Creating new channel with id <$channelId> for connection with id <$connectionId>, instance <$instanceName>.")
                 getConnection(connectionId).createChannel()
-                    ?: error("Could not allocate this channel id <$channelId>. ")
+                    ?: error("Could not allocate this channel id <$channelId> instance <$instanceName>. ")
             }
 
             if (!channel.isOpen) {
                 channelCache.remove(id)
-                error("Channel <$channelId> is not open. ${channel.closeReason}")
+                error("Channel <$channelId> instance <$instanceName> is not open. ${channel.closeReason}")
             }
 
             return@retry channel

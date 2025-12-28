@@ -2,16 +2,19 @@ package io.github.damir.denis.tudor.ktor.server.rabbitmq.builders
 
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator.Delegator
 
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator.StateRegistry.logStateTrace
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator.StateRegistry.verify
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.dsl.RabbitDslMarker
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.Channel
 
 @RabbitDslMarker
 class BasicNackBuilder(private val channel: Channel) {
-    var deliveryTag: Long by Delegator(on = this)
-    var multiple: Boolean by Delegator(on = this)
-    var requeue: Boolean by Delegator(on = this)
+    private val deliveryTagDelegate = Delegator<Long>()
+    var deliveryTag: Long by deliveryTagDelegate
+
+    private val multipleDelegate = Delegator<Boolean>()
+    var multiple: Boolean by multipleDelegate
+
+    private val requeueDelegate = Delegator<Boolean>()
+    var requeue: Boolean by requeueDelegate
 
     init {
         multiple = false
@@ -19,12 +22,22 @@ class BasicNackBuilder(private val channel: Channel) {
     }
 
     suspend fun build() = when {
-        verify(on = this@BasicNackBuilder, ::deliveryTag, ::multiple, ::requeue) -> {
+        Delegator.verify(
+            deliveryTagDelegate,
+            multipleDelegate,
+            requeueDelegate
+        ) -> {
             channel.basicNack(deliveryTag, multiple, requeue)
         }
 
         else -> {
-            error(logStateTrace(on = this@BasicNackBuilder))
+            error(
+                Delegator.logStateTrace(
+                    deliveryTagDelegate,
+                    multipleDelegate,
+                    requeueDelegate
+                )
+            )
         }
     }
 }

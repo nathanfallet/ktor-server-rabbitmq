@@ -2,8 +2,6 @@ package io.github.damir.denis.tudor.ktor.server.rabbitmq.builders
 
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator.Delegator
 
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator.StateRegistry.logStateTrace
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator.StateRegistry.verify
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.dsl.RabbitDslMarker
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.Channel
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.Properties
@@ -15,12 +13,23 @@ import kotlinx.serialization.json.Json
 class BasicPublishBuilder(
     private val channel: Channel,
 ) {
-    var exchange: String by Delegator(on = this)
-    var routingKey: String by Delegator(on = this)
-    var message: ByteArray by Delegator(on = this)
-    var mandatory: Boolean by Delegator(on = this)
-    var immediate: Boolean by Delegator(on = this)
-    var properties: Properties by Delegator(on = this)
+    private val exchangeDelegate = Delegator<String>()
+    var exchange: String by exchangeDelegate
+
+    private val routingKeyDelegate = Delegator<String>()
+    var routingKey: String by routingKeyDelegate
+
+    private val messageDelegate = Delegator<ByteArray>()
+    var message: ByteArray by messageDelegate
+
+    private val mandatoryDelegate = Delegator<Boolean>()
+    var mandatory: Boolean by mandatoryDelegate
+
+    private val immediateDelegate = Delegator<Boolean>()
+    var immediate: Boolean by immediateDelegate
+
+    private val propertiesDelegate = Delegator<Properties>()
+    var properties: Properties by propertiesDelegate
 
     init {
         routingKey = ""
@@ -38,14 +47,13 @@ class BasicPublishBuilder(
     }
 
     suspend fun build() = when {
-        verify(
-            on = this@BasicPublishBuilder,
-            ::exchange,
-            ::routingKey,
-            ::message,
-            ::mandatory,
-            ::immediate,
-            ::properties
+        Delegator.verify(
+            exchangeDelegate,
+            routingKeyDelegate,
+            messageDelegate,
+            mandatoryDelegate,
+            immediateDelegate,
+            propertiesDelegate
         ) -> {
             channel.basicPublish(
                 exchange,
@@ -57,7 +65,13 @@ class BasicPublishBuilder(
             )
         }
 
-        verify(on = this@BasicPublishBuilder, ::exchange, ::routingKey, ::message, ::immediate, ::properties) -> {
+        Delegator.verify(
+            exchangeDelegate,
+            routingKeyDelegate,
+            messageDelegate,
+            immediateDelegate,
+            propertiesDelegate
+        ) -> {
             channel.basicPublish(
                 exchange,
                 routingKey,
@@ -67,7 +81,13 @@ class BasicPublishBuilder(
             )
         }
 
-        verify(on = this@BasicPublishBuilder, ::exchange, ::routingKey, ::message, ::mandatory, ::properties) -> {
+        Delegator.verify(
+            exchangeDelegate,
+            routingKeyDelegate,
+            messageDelegate,
+            mandatoryDelegate,
+            propertiesDelegate
+        ) -> {
             channel.basicPublish(
                 exchange,
                 routingKey,
@@ -77,7 +97,12 @@ class BasicPublishBuilder(
             )
         }
 
-        verify(on = this@BasicPublishBuilder, ::exchange, ::routingKey, ::message, ::properties) -> {
+        Delegator.verify(
+            exchangeDelegate,
+            routingKeyDelegate,
+            messageDelegate,
+            propertiesDelegate
+        ) -> {
             channel.basicPublish(
                 exchange,
                 routingKey,
@@ -87,7 +112,14 @@ class BasicPublishBuilder(
         }
 
         else -> {
-            error(logStateTrace(on = this@BasicPublishBuilder))
+            error(
+                Delegator.logStateTrace(
+                    exchangeDelegate,
+                    routingKeyDelegate,
+                    messageDelegate,
+                    propertiesDelegate
+                )
+            )
         }
     }
 }

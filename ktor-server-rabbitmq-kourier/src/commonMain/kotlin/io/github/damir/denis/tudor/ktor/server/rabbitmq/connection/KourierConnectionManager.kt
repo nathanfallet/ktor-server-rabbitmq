@@ -100,17 +100,17 @@ open class KourierConnectionManager(
 
     override suspend fun getConnection(id: String): Connection = connectionMutex.withLock {
         retry {
-            if (connectionCache.containsKey(id)) logger.debug("Connection with id: <$id> taken from cache.")
+            if (connectionCache.containsKey(id)) logger.debug("Connection with id: <$id> taken from cache, instance <$instanceName>.")
 
             val connection = connectionCache.getOrPut(id) {
-                logger.debug("Creating new connection with id: <$id>.")
+                logger.debug("Creating new connection with id: <$id>, instance <$instanceName>.")
                 createRobustAMQPConnection(
                     coroutineScope,
                     amqpConfig.copy(server = amqpConfig.server.copy(connectionName = id))
                 ).let(::KourierConnection)
             }
 
-            if (!connection.isOpen) error("Connection <$id> is not open.")
+            if (!connection.isOpen) error("Connection <$id> is not open, instance <$instanceName>.")
 
             return@retry connection
         }

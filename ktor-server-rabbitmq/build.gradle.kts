@@ -5,8 +5,8 @@ plugins {
 }
 
 mavenPublishing {
-    publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL, true)
-    signAllPublications()
+    // publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL, false)
+    // signAllPublications()
     pom {
         name.set("Ktor RabbitMQ plugin")
         description.set(

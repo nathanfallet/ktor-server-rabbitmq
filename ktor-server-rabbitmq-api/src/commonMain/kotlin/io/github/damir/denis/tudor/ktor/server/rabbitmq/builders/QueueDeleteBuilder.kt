@@ -2,29 +2,40 @@ package io.github.damir.denis.tudor.ktor.server.rabbitmq.builders
 
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator.Delegator
 
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator.StateRegistry.logStateTrace
-import io.github.damir.denis.tudor.ktor.server.rabbitmq.delegator.StateRegistry.verify
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.dsl.RabbitDslMarker
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.Channel
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.model.QueueDeleteOk
 
 @RabbitDslMarker
 class QueueDeleteBuilder(private val channel: Channel) {
-    var queue: String by Delegator(on = this)
-    var ifUnused: Boolean by Delegator(on = this)
-    var ifEmpty: Boolean by Delegator(on = this)
+    private val queueDelegate = Delegator<String>()
+    var queue: String by queueDelegate
+
+    private val ifUnusedDelegate = Delegator<Boolean>()
+    var ifUnused: Boolean by ifUnusedDelegate
+
+    private val ifEmptyDelegate = Delegator<Boolean>()
+    var ifEmpty: Boolean by ifEmptyDelegate
 
     suspend fun build(): QueueDeleteOk = when {
-        verify(on = this@QueueDeleteBuilder, ::queue, ::ifUnused, ::ifEmpty) -> {
+        Delegator.verify(
+            queueDelegate,
+            ifUnusedDelegate,
+            ifEmptyDelegate
+        ) -> {
             channel.queueDelete(queue, ifUnused, ifEmpty)
         }
 
-        verify(on = this@QueueDeleteBuilder, ::queue) -> {
+        Delegator.verify(
+            queueDelegate
+        ) -> {
             channel.queueDelete(queue)
         }
 
         else -> {
-            error(logStateTrace(on = this@QueueDeleteBuilder))
+            error(
+                Delegator.logStateTrace(queueDelegate)
+            )
         }
     }
 }

@@ -4,10 +4,17 @@ import io.github.damir.denis.tudor.ktor.server.rabbitmq.RabbitMQ
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.dsl.*
 import io.ktor.server.application.*
 import io.ktor.server.testing.*
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.testcontainers.containers.RabbitMQContainer
@@ -176,13 +183,21 @@ class SerializationTests {
     }
 
     @Test
-    fun `when a message cannot be serialized ignore messages`() = testApplication {
+    fun `when a message cannot be serialized exception is thrown to outer scope`() = testApplication {
+        val exceptionDeferred = CompletableDeferred<Throwable>()
+
+        val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
+            exceptionDeferred.complete(throwable)
+        }
+
+        val rabbitMQScope = CoroutineScope(SupervisorJob() + exceptionHandler)
+
         application {
             install(RabbitMQ) {
                 connectionAttempts = 3
                 attemptDelay = 10
                 uri = rabbitMQContainer.amqpUrl
-                consumerChannelCoroutineSize = 100
+                scope = rabbitMQScope
             }
         }
 
@@ -234,11 +249,17 @@ class SerializationTests {
                 }
             }
 
-            sleep(2_000)
+            sleep(3_000)
 
             log.info(counter1.toString())
 
             assert(counter1.get() == 10)
+
+            assertTrue(
+                runBlocking {
+                    withTimeoutOrNull(2000) { exceptionDeferred.await() }
+                } is Exception
+            )
         }
     }
 

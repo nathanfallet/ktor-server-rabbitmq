@@ -5,8 +5,8 @@ plugins {
 }
 
 mavenPublishing {
-    publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL, true)
-    signAllPublications()
+    // publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL, true)
+    // signAllPublications()
     pom {
         name.set("Ktor RabbitMQ plugin API")
         description.set(
@@ -79,4 +79,13 @@ kotlin {
             }
         }
     }
+}
+
+tasks.sourcesJar{
+    exclude("logback.xml")
+}
+
+tasks.register<Jar>("javadocJar") {
+    archiveClassifier.set("javadoc")
+    from(tasks["javadoc"])
 }
