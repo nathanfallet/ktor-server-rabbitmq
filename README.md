@@ -29,7 +29,8 @@
 5. [Consumer Example](#consumer-example)
 6. [Advanced Consumer Example](#consumer-example-with-coroutinepollsize)
 7. [Library Calls Example](#library-calls-example)
-8. [Custom Coroutine Scope Example](#custom-coroutine-scope-example)
+8. [Multiple Instances Example](#multiple-instances-example)
+9. [Custom Coroutine Scope Example](#custom-coroutine-scope-example)
 9. [Serialization Fallback Example](#serialization-fallback-example)
 10. [Dead Letter Queue Example](#dead-letter-queue-example)
 11. [Logging](#logging)
@@ -214,6 +215,144 @@ rabbitmq {
         }
 
         channel.basicConsume("demo-queue", true, consumer)
+    }
+}
+```
+
+### Multiple Instances Example
+
+```kotlin
+fun Application.module() {
+    // Production RabbitMQ cluster
+    install(RabbitMQ(instanceName = "production")) {
+        uri = "amqp://prod-user:prod-pass@prod-rabbitmq:5672"
+        dispatcherThreadPollSize = 8
+    }
+
+    // Analytics RabbitMQ cluster
+    install(RabbitMQ(instanceName = "analytics")) {
+        uri = "amqp://analytics-user:analytics-pass@analytics-rabbitmq:5672"
+        dispatcherThreadPollSize = 4
+    }
+
+    // Setup production queues
+    rabbitmq(instanceName = "production") {
+        queueBind {
+            queue = "orders"
+            exchange = "orders-exchange"
+            routingKey = "order.created"
+            queueDeclare {
+                queue = "orders"
+                durable = true
+            }
+            exchangeDeclare {
+                exchange = "orders-exchange"
+                type = "direct"
+            }
+        }
+    }
+
+    // Setup analytics queues
+    rabbitmq(instanceName = "analytics") {
+        queueBind {
+            queue = "events"
+            exchange = "analytics-exchange"
+            routingKey = "user.action"
+            queueDeclare {
+                queue = "events"
+                durable = false
+            }
+            exchangeDeclare {
+                exchange = "analytics-exchange"
+                type = "topic"
+            }
+        }
+    }
+
+    // Process critical orders
+    rabbitmq(instanceName = "production") {
+        basicConsume {
+            queue = "orders"
+            autoAck = false
+            deliverCallback<String> { message ->
+                // Process order
+                processOrder(message.body)
+                basicAck {
+                    deliveryTag = message.envelope.deliveryTag
+                }
+                
+                // Send analytics event
+                rabbitmq(instanceName = "analytics") {
+                    basicPublish {
+                        exchange = "analytics-exchange"
+                        routingKey = "user.action"
+                        message { "Order processed: ${message.body}" }
+                    }
+                }
+            }
+        }
+    }
+}
+```
+
+### Multiple Connections Example
+
+```kotlin
+fun Application.module() {
+    install(RabbitMQ) {
+        uri = "amqp://guest:guest@localhost:5672"
+        defaultConnectionName = "default"
+    }
+
+    rabbitmq {
+        // Setup queues and exchanges
+        queueBind {
+            queue = "orders-queue"
+            exchange = "orders-exchange"
+            routingKey = "order.created"
+            queueDeclare {
+                queue = "orders-queue"
+                durable = true
+            }
+            exchangeDeclare {
+                exchange = "orders-exchange"
+                type = "direct"
+            }
+        }
+    }
+
+    // Producer connection
+    rabbitmq {
+        connection(id = "producer") {
+            repeat(100) {
+                basicPublish {
+                    exchange = "orders-exchange"
+                    routingKey = "order.created"
+                    message { "Order #$it created" }
+                }
+            }
+        }
+    }
+
+    // Consumer connection with high throughput
+    rabbitmq {
+        connection(id = "consumer") {
+            basicConsume {
+                queue = "orders-queue"
+                autoAck = false
+                dispatcher = Dispatchers.IO
+                coroutinePollSize = 10
+                deliverCallback<String> { message ->
+                    // Process order
+                    println("Processing: ${message.body}")
+                    delay(100) // Simulate processing time
+                    
+                    basicAck {
+                        deliveryTag = message.envelope.deliveryTag
+                    }
+                }
+            }
+        }
     }
 }
 ```
