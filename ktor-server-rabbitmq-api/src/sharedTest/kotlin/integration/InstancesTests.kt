@@ -11,6 +11,9 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.testcontainers.containers.RabbitMQContainer
 import org.testcontainers.utility.DockerImageName
+import java.lang.Thread.sleep
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.test.assertEquals
 
 class InstancesTests {
 
@@ -135,14 +138,14 @@ class InstancesTests {
     }
 
     @Test
-    fun `trying to access an instance that is not existent test`() = testApplication {
+    fun `cross-instance communication in delivery callback`() = testApplication {
         application {
-            install(RabbitMQ(instanceName = Instances.INSTANCE1.name)) {
+            install(RabbitMQ(instanceName = "production")) {
                 connectionAttempts = 3
                 attemptDelay = 10
                 uri = rabbitMQContainer.amqpUrl
             }
-            install(RabbitMQ(instanceName = Instances.INSTANCE2.name)) {
+            install(RabbitMQ(instanceName = "analytics")) {
                 connectionAttempts = 3
                 attemptDelay = 10
                 uri = rabbitMQContainer1.amqpUrl
@@ -150,22 +153,109 @@ class InstancesTests {
         }
 
         application {
-            assertThrows<IllegalStateException> {
-                rabbitmqTest(instanceName = "test") {
-                    connectionTest(id = "test") {
-                        queueBind {
-                            queue = "dlq"
-                            exchange = "dlx"
-                            routingKey = "dlq-dlx"
-                            queueDeclare {
-                                queue = "dlq"
-                                durable = true
-                            }
-                            exchangeDeclare {
-                                exchange = "dlx"
-                                type = "direct"
+            // Setup production queues
+            rabbitmqTest(instanceName = "production") {
+                queueBind {
+                    queue = "orders"
+                    exchange = "orders-exchange"
+                    routingKey = "order.created"
+                    queueDeclare {
+                        queue = "orders"
+                        durable = true
+                    }
+                    exchangeDeclare {
+                        exchange = "orders-exchange"
+                        type = "direct"
+                    }
+                }
+            }
+
+            // Setup analytics queues
+            rabbitmqTest(instanceName = "analytics") {
+                queueBind {
+                    queue = "events"
+                    exchange = "analytics-exchange"
+                    routingKey = "user.action"
+                    queueDeclare {
+                        queue = "events"
+                        durable = false
+                    }
+                    exchangeDeclare {
+                        exchange = "analytics-exchange"
+                        type = "topic"
+                    }
+                }
+            }
+
+            val analyticsMessages = AtomicInteger(0)
+
+            // Analytics consumer
+            rabbitmqTest(instanceName = "analytics") {
+                basicConsume {
+                    queue = "events"
+                    autoAck = true
+                    deliverCallback<String> { message ->
+                        analyticsMessages.incrementAndGet()
+                        println("Analytics: ${message.body}")
+                    }
+                }
+            }
+
+            // Production consumer that sends analytics events
+            rabbitmqTest(instanceName = "production") {
+                basicConsume {
+                    queue = "orders"
+                    autoAck = false
+                    deliverCallback<String> { message ->
+                        // Process order
+                        println("Processing order: ${message.body}")
+                        
+                        basicAck {
+                            deliveryTag = message.envelope.deliveryTag
+                        }
+                        
+                        // Send analytics event to different instance
+                        rabbitmqTest(instanceName = "analytics") {
+                            basicPublish {
+                                exchange = "analytics-exchange"
+                                routingKey = "user.action"
+                                message { "Order processed: ${message.body}" }
                             }
                         }
+                    }
+                }
+            }
+
+            // Publish order to production
+            rabbitmqTest(instanceName = "production") {
+                basicPublish {
+                    exchange = "orders-exchange"
+                    routingKey = "order.created"
+                    message { "Order #12345" }
+                }
+            }
+
+            sleep(2000)
+            assertEquals(1, analyticsMessages.get())
+        }
+    }
+
+    @Test
+    fun `trying to access an instance that is not existent test`() = testApplication {
+        application {
+            install(RabbitMQ(instanceName = Instances.INSTANCE1.name)) {
+                connectionAttempts = 3
+                attemptDelay = 10
+                uri = rabbitMQContainer.amqpUrl
+            }
+        }
+
+        application {
+            assertThrows<IllegalStateException> {
+                rabbitmqTest(instanceName = "nonexistent") {
+                    basicPublish {
+                        exchange = "test"
+                        message { "test" }
                     }
                 }
             }
